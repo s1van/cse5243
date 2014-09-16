@@ -7,9 +7,13 @@ import sys
 import urllib
 import urllib2
 import re
+import pprint
+
 from bs4 import BeautifulSoup
 from os import listdir
-import pprint
+from collections import Counter
+from itertools import tee, islice, izip
+from nltk.stem import *
 
 
 def usage():
@@ -21,7 +25,7 @@ def parseRaw(raw, sep, labels, tags, records = []):
 		r = {}
 		for tag in tags:
 			try:
-				r[tag] = rr.find(tag).text
+				r[tag] = BeautifulSoup(rr.find(tag).text).text	# to interpret special symbols properly
 			except:
 				continue
 
@@ -35,17 +39,76 @@ def parseRaw(raw, sep, labels, tags, records = []):
 
 	return records
 	
+def readWordList(words_file):
+	open_file = open(words_file, 'r')
+    	words_list = []
+	contents = open_file.readlines()
+	for i in range(len(contents)):
+     		words_list.append(contents[i].strip('\n'))
+	return words_list    
+
+def _ngrams(lst, n, stoplist, stem):
+	stemmer = PorterStemmer()
+	tlst = lst
+	while True:
+		a, b = tee(tlst)
+		l = tuple(islice(a, n))
+		# handle stop list
+		for e in l:
+			if e in stoplist:
+				next(b)
+				tlst = b
+				continue
+		# generate ngram
+		if len(l) == n:
+			if stem:
+				yield tuple(map(stemmer.stem, l))
+			else:
+				yield l
+			next(b)
+			tlst = b
+		else:
+			break
+
+def ngrams(text, n, stoplist = [], stem = True):
+	lst = re.findall("\w+", text)
+	return Counter(_ngrams(lst, n, stoplist, stem) )
+
+def cfilter(counter, MIN, MAX):
+	keys = counter.keys()
+	for k in keys:
+		if counter[k] < MIN or counter[k] > MAX:
+			del counter[k]
+
+def selectFeatures(data, tags, stoplist):
+	# get n-gram statistics
+	stat = {}
+	for tag in tags:
+		for num in range(1, 4):	# n-gram lengthes
+			stat[(tag, num)] = Counter()
+			for r in data:
+				try:
+					stat[(tag, num)] += ngrams(r[tag], num, stoplist)
+				except KeyError:
+					continue
+			cfilter(stat[(tag, num)], 3, sys.maxint)
+	# print stat	
+	return stat
+
 def main():
 	if len(sys.argv) < 5:
 		print "ERROR: not enough arguments"
 		usage()
 		sys.exit()
 	try:                                
-		opts, args = getopt.getopt(sys.argv[1:], "l:d:f:o:u:s:t:h", ["label=", "dir=", "file=", "url=","sep=","help", "tag=", "output="]) 
+		opts, args = getopt.getopt(sys.argv[1:], "l:d:f:o:u:s:t:S:h", ["label=", "dir=", "file=", "url=","sep=","help", "tag=", "output=", "stoplist="]) 
 	except getopt.GetoptError:           
 		usage()                          
 		sys.exit(2)
                      
+	# init vars
+	stoplist = set()
+
 	for opt, arg in opts:                
 		if opt in ("-h", "--help"):      
 			usage()                     
@@ -59,9 +122,11 @@ def main():
 		elif opt in ("-o", "--output"): 
 			ofile = arg
 		elif opt in ("-s", "--sep"): 
-			sep= arg
+			sep = arg
+		elif opt in ("-S", "--stoplist"): 
+			stoplist = readWordList(arg)
 		elif opt in ("-l", "--label"): 
-			labels= arg.split(',')
+			labels = arg.split(',')
 		elif opt in ("-t", "--tag"): 
 			tags = arg.split(',')
 		else:
@@ -69,6 +134,7 @@ def main():
 			usage()
 			sys.exit()
 
+	# parse the raw xml file
 	if 'url' in locals():
 		raw_data = BeautifulSoup(urllib2.urlopen(url), "html.parser")
 		data = parseRaw(raw_data, sep, labels, tags)
@@ -85,8 +151,12 @@ def main():
 		print "Need to pass argument url, file, or dir"
 		usage()
 		sys.exit(2)
+
+	# features involving a word form the stoplist will be removed
+	selectFeatures(data, tags, stoplist)
 	
 	pprint.PrettyPrinter(indent=4).pprint(data[1])
+	#pprint.PrettyPrinter(indent=4).pprint(stoplist)
 
 if __name__ == "__main__":
 	main()

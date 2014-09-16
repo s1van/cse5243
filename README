@@ -1,1 +1,2 @@
-[PRE] python packages: chardet, BeautifulSoup
+[PRE]	python packages: chardet, BeautifulSoup, NLTK
+	sudo apt-get install python-chardet python-bs python-nltk
