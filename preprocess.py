@@ -89,11 +89,12 @@ def cfilter(counter, MIN, MAX):
 		if counter[k] < MIN or counter[k] > MAX:
 			del counter[k]
 
-def selectFeatures(data, tags, stoplist, minfreq):
-	features = []
+def selectFeatures(data, tags, stoplist, p):
+	features = {}
 	# get n-gram statistics
 	stat = {}
 	for tag in tags:
+		features[tag] = []
 		for num in range(1, 3):	# n-gram lengthes
 			stat[(tag, num)] = Counter()
 			for r in data:
@@ -101,10 +102,42 @@ def selectFeatures(data, tags, stoplist, minfreq):
 					stat[(tag, num)] += ngrams(r[tag], num, stoplist)
 				except KeyError:
 					continue
+
+			# generate the counter value distribution
+			dist = {}
+			for v in stat[(tag, num)].values():
+				try:
+					dist[v] += 1
+				except:
+					dist[v] = 1
+
+			# choose minimum frequency accordingly
+			s = sum([k*v for k,v in zip(dist.keys(), dist.values()) ])
+			c = 0
+			for k in dist.keys():
+				c += dist[k] * k
+				if (c > s * p / 100):
+					minfreq = k
+					break
+	
 			cfilter(stat[(tag, num)], minfreq, sys.maxint)
-			features += stat[(tag, num)].keys()
-	# collect features
+			features[tag] += stat[(tag, num)].keys()
 	return features
+
+def extractFeatures(data, features, tags, stoplist):
+	for tag in tags:
+		for r in data:
+			r['feature'] = {}
+			for num in range(1, 3):	# n-gram lengthes
+				try:
+					c = ngrams(r[tag], num, stoplist)
+					for f in c:
+						if f in features[tag]:
+							r['feature'][f] = c[f]
+				except KeyError:
+					continue
+	
+	return data
 
 def main():
 	if len(sys.argv) < 5:
@@ -112,14 +145,14 @@ def main():
 		usage()
 		sys.exit()
 	try:                                
-		opts, args = getopt.getopt(sys.argv[1:], "l:d:f:o:u:s:t:S:m:h", ["label=", "dir=", "file=", "url=","sep=","help", "tag=", "output=", "stoplist=", "min_frequency="]) 
+		opts, args = getopt.getopt(sys.argv[1:], "l:d:f:o:u:s:t:S:m:h", ["label=", "dir=", "file=", "url=","sep=","help", "tag=", "output=", "stoplist=", "min_freq_p="]) 
 	except getopt.GetoptError:           
 		usage()                          
 		sys.exit(2)
                      
 	# init vars
 	stoplist = set()
-	minfreq	= 1;
+	minfreq_p = 0;
 
 	for opt, arg in opts:                
 		if opt in ("-h", "--help"):      
@@ -141,8 +174,8 @@ def main():
 			labels = arg.split(',')
 		elif opt in ("-t", "--tag"): 
 			tags = arg.split(',')
-		elif opt in ("-m", "--min_frequency"): 
-			minfreq = int(arg)
+		elif opt in ("-m", "--min_freq_p"): 
+			minfreq_p = int(arg)
 		else:
 			print "unhandled option"
 			usage()
@@ -167,8 +200,12 @@ def main():
 		sys.exit(2)
 
 	# features involving a word form the stoplist will be removed
-	print selectFeatures(data, tags, stoplist, minfreq)
-	
+	features = selectFeatures(data, tags, stoplist, minfreq_p)
+	print '#feature = ', [len(features[tag]) for tag in tags]
+
+	# extract features
+	extractFeatures(data, features, tags, stoplist)
+
 	#pprint.PrettyPrinter(indent=4).pprint(data[1])
 	#pprint.PrettyPrinter(indent=4).pprint(stoplist)
 
