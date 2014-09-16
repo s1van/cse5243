@@ -41,27 +41,36 @@ def parseRaw(raw, sep, labels, tags, records = []):
 	
 def readWordList(words_file):
 	open_file = open(words_file, 'r')
-    	words_list = []
+    	words_list = set()
 	contents = open_file.readlines()
 	for i in range(len(contents)):
-     		words_list.append(contents[i].strip('\n'))
+     		words_list.add(contents[i].strip('\n'))
 	return words_list    
 
+stemmer = PorterStemmer()
 def _ngrams(lst, n, stoplist, stem):
-	stemmer = PorterStemmer()
+	global stemmer 
 	tlst = lst
 	while True:
 		a, b = tee(tlst)
-		l = tuple(islice(a, n))
+		# convert strings to lowercase
+		l = map(lambda s:s.lower(), tuple(islice(a, n)))
+
 		# handle stop list
+		skip = False
 		for e in l:
-			if e in stoplist:
+			if e in stoplist or re.match('[0-9]+', e):
 				next(b)
 				tlst = b
-				continue
+				skip = True
+				break
+		if skip:
+			continue
+
 		# generate ngram
 		if len(l) == n:
 			if stem:
+				# stemming
 				yield tuple(map(stemmer.stem, l))
 			else:
 				yield l
@@ -80,20 +89,22 @@ def cfilter(counter, MIN, MAX):
 		if counter[k] < MIN or counter[k] > MAX:
 			del counter[k]
 
-def selectFeatures(data, tags, stoplist):
+def selectFeatures(data, tags, stoplist, minfreq):
+	features = []
 	# get n-gram statistics
 	stat = {}
 	for tag in tags:
-		for num in range(1, 4):	# n-gram lengthes
+		for num in range(1, 3):	# n-gram lengthes
 			stat[(tag, num)] = Counter()
 			for r in data:
 				try:
 					stat[(tag, num)] += ngrams(r[tag], num, stoplist)
 				except KeyError:
 					continue
-			cfilter(stat[(tag, num)], 3, sys.maxint)
-	# print stat	
-	return stat
+			cfilter(stat[(tag, num)], minfreq, sys.maxint)
+			features += stat[(tag, num)].keys()
+	# collect features
+	return features
 
 def main():
 	if len(sys.argv) < 5:
@@ -101,13 +112,14 @@ def main():
 		usage()
 		sys.exit()
 	try:                                
-		opts, args = getopt.getopt(sys.argv[1:], "l:d:f:o:u:s:t:S:h", ["label=", "dir=", "file=", "url=","sep=","help", "tag=", "output=", "stoplist="]) 
+		opts, args = getopt.getopt(sys.argv[1:], "l:d:f:o:u:s:t:S:m:h", ["label=", "dir=", "file=", "url=","sep=","help", "tag=", "output=", "stoplist=", "min_frequency="]) 
 	except getopt.GetoptError:           
 		usage()                          
 		sys.exit(2)
                      
 	# init vars
 	stoplist = set()
+	minfreq	= 1;
 
 	for opt, arg in opts:                
 		if opt in ("-h", "--help"):      
@@ -129,6 +141,8 @@ def main():
 			labels = arg.split(',')
 		elif opt in ("-t", "--tag"): 
 			tags = arg.split(',')
+		elif opt in ("-m", "--min_frequency"): 
+			minfreq = int(arg)
 		else:
 			print "unhandled option"
 			usage()
@@ -153,9 +167,9 @@ def main():
 		sys.exit(2)
 
 	# features involving a word form the stoplist will be removed
-	selectFeatures(data, tags, stoplist)
+	print selectFeatures(data, tags, stoplist, minfreq)
 	
-	pprint.PrettyPrinter(indent=4).pprint(data[1])
+	#pprint.PrettyPrinter(indent=4).pprint(data[1])
 	#pprint.PrettyPrinter(indent=4).pprint(stoplist)
 
 if __name__ == "__main__":
