@@ -25,6 +25,7 @@ def usage():
 	print "tag        tag specifies the content segment in one article, e.g. <reuters> <content> Content </content> </reuters>"
 	print "stoplist   path of the file that contains stop words"
 	print "MIN        filter out low frequent words (phrases) that contribute to MIN portion of total word (phrase) appearances"
+	print "output     result will be saved to output, and selected features will be dumped to file output.feature"
 	print ""
 	print "Example: ./preprocess.py --dir=/tmp/data --sep=reuters --label=topics,places --tag=body --stoplist=/tmp/stoplist --MIN=95 --output=/tmp/out.pickle"
 
@@ -103,7 +104,7 @@ def selectFeatures(data, tags, stoplist, p):
 	stat = {}
 	for tag in tags:
 		features[tag] = set()
-		for num in range(1, 3):	# n-gram lengthes
+		for num in range(1, 4):	# n-gram lengthes
 			stat[(tag, num)] = Counter()
 			for r in data:
 				try:
@@ -136,7 +137,7 @@ def extractFeatures(data, features, tags, stoplist):
 	for tag in tags:
 		for r in data:
 			r['feature'] = {}
-			for num in range(1, 3):	# n-gram lengthes
+			for num in range(1, 4):	# n-gram lengthes
 				try:
 					c = ngrams(r[tag], num, stoplist)
 					for f in c:
@@ -219,6 +220,9 @@ def main():
 		with io.open(ofile, 'wb') as f:
 			pickle.dump(data, f)
 			print "Save result to ", ofile
+		with io.open(ofile + '.feature', 'wb') as f:
+			print >> f, features
+			print "Save feature to ", ofile + '.feature'
 
 
 if __name__ == "__main__":
