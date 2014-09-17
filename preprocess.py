@@ -18,8 +18,15 @@ from nltk.stem import *
 
 
 def usage():
-	print "Usage: preprocess.py [--help] --url=data_url --file=file_path --dir=dir_path --output=path --sep=separator --labels=lablel1,label2 --tag=tag1,tag2,... " 
+	print "Usage: preprocess.py [--help] --url=data_url --file=file_path --dir=dir_path --output=path --sep=separator --label=lablel1,label2 --tag=tag1,tag2,... " 
+	print "                              --stoplist=file --MIN=percentage"
 	print ""
+	print "sep        token used to identify an article, e.g. <reuters> article </reuters>"
+	print "tag        tag specifies the content segment in one article, e.g. <reuters> <content> Content </content> </reuters>"
+	print "stoplist   path of the file that contains stop words"
+	print "MIN        filter out low frequent words (phrases) that contribute to MIN portion of total word (phrase) appearances"
+	print ""
+	print "Example: ./preprocess.py --dir=/tmp/data --sep=reuters --label=topics,places --tag=body --stoplist=/tmp/stoplist --MIN=95 --output=/tmp/out.pickle"
 
 def parseRaw(raw, sep, labels, tags, records = []):
 	for rr in raw.findAll(sep):
@@ -95,7 +102,7 @@ def selectFeatures(data, tags, stoplist, p):
 	# get n-gram statistics
 	stat = {}
 	for tag in tags:
-		features[tag] = []
+		features[tag] = set()
 		for num in range(1, 3):	# n-gram lengthes
 			stat[(tag, num)] = Counter()
 			for r in data:
@@ -114,7 +121,7 @@ def selectFeatures(data, tags, stoplist, p):
 
 			# choose minimum frequency accordingly
 			s = sum([k*v for k,v in zip(dist.keys(), dist.values()) ])
-			c = 0
+			c = minfreq = 0
 			for k in dist.keys():
 				c += dist[k] * k
 				if (c > s * p / 100):
@@ -122,7 +129,7 @@ def selectFeatures(data, tags, stoplist, p):
 					break
 	
 			cfilter(stat[(tag, num)], minfreq, sys.maxint)
-			features[tag] += stat[(tag, num)].keys()
+			features[tag] = features[tag].union(stat[(tag, num)].keys() )
 	return features
 
 def extractFeatures(data, features, tags, stoplist):
@@ -146,7 +153,7 @@ def main():
 		usage()
 		sys.exit()
 	try:                                
-		opts, args = getopt.getopt(sys.argv[1:], "l:d:f:o:u:s:t:S:m:h", ["label=", "dir=", "file=", "url=","sep=","help", "tag=", "output=", "stoplist=", "min_freq_p="]) 
+		opts, args = getopt.getopt(sys.argv[1:], "l:d:f:o:u:s:t:S:M:h", ["label=", "dir=", "file=", "url=","sep=","help", "tag=", "output=", "stoplist=", "MIN="]) 
 	except getopt.GetoptError:           
 		usage()                          
 		sys.exit(2)
@@ -175,7 +182,7 @@ def main():
 			labels = arg.split(',')
 		elif opt in ("-t", "--tag"): 
 			tags = arg.split(',')
-		elif opt in ("-m", "--min_freq_p"): 
+		elif opt in ("-M", "--MIN"): 
 			minfreq_p = int(arg)
 		else:
 			print "unhandled option"
@@ -200,11 +207,11 @@ def main():
 		usage()
 		sys.exit(2)
 
-	# features involving a word form the stoplist will be removed
+	print 'Select features ...'
 	features = selectFeatures(data, tags, stoplist, minfreq_p)
 	print '#feature = ', [len(features[tag]) for tag in tags]
 
-	# extract features
+	print 'Extract features ...'
 	data = extractFeatures(data, features, tags, stoplist)
 
 	# output
