@@ -19,12 +19,13 @@ from nltk.stem import *
 
 def usage():
 	print "Usage: preprocess.py [--help] --url=data_url --file=file_path --dir=dir_path --output=path --sep=separator --label=lablel1,label2 --tag=tag1,tag2,... " 
-	print "                              --stoplist=file --MIN=percentage"
+	print "                              --stoplist=file --MIN=percentage1,pecentage2,..."
 	print ""
 	print "sep        token used to identify an article, e.g. <reuters> article </reuters>"
 	print "tag        tag specifies the content segment in one article, e.g. <reuters> <content> Content </content> </reuters>"
 	print "stoplist   path of the file that contains stop words"
 	print "MIN        filter out low frequent words (phrases) that contribute to MIN portion of total word (phrase) appearances"
+	print "           with percentage1 corresponding to 1-gram, percentage2 corresponding to 2-gram, ..."
 	print "output     result will be saved to output, and selected features will be dumped to file output.feature"
 	print ""
 	print "Example: ./preprocess.py --dir=/tmp/data --sep=reuters --label=topics,places --tag=body --stoplist=/tmp/stoplist --MIN=95 --output=/tmp/out.pickle"
@@ -99,49 +100,51 @@ def cfilter(counter, MIN, MAX):
 			del counter[k]
 
 def selectFeatures(data, tags, stoplist, p):
-	features = {}
+	features = set()
 	# get n-gram statistics
 	stat = {}
-	for tag in tags:
-		features[tag] = set()
-		for num in range(1, 4):	# n-gram lengthes
+
+	for num in range(1, len(p) + 1):	# n-gram lengthes
+		stat[num] = Counter()
+		for tag in tags:
 			stat[(tag, num)] = Counter()
 			for r in data:
 				try:
 					stat[(tag, num)] += ngrams(r[tag], num, stoplist)
 				except KeyError:
 					continue
+			stat[num] += stat[(tag, num)]
 
-			# generate the counter value distribution
-			dist = {}
-			for v in stat[(tag, num)].values():
-				try:
-					dist[v] += 1
-				except:
-					dist[v] = 1
+		# generate the counter value distribution
+		dist = {}
+		for v in stat[num].values():
+			try:
+				dist[v] += 1
+			except:
+				dist[v] = 1
 
-			# choose minimum frequency accordingly
-			s = sum([k*v for k,v in zip(dist.keys(), dist.values()) ])
-			c = minfreq = 0
-			for k in dist.keys():
-				c += dist[k] * k
-				if (c > s * p / 100):
-					minfreq = k
-					break
-	
-			cfilter(stat[(tag, num)], minfreq, sys.maxint)
-			features[tag] = features[tag].union(stat[(tag, num)].keys() )
+		# choose minimum frequency accordingly
+		s = sum([k*v for k,v in zip(dist.keys(), dist.values()) ])
+		c = minfreq = 0
+		for k in dist.keys():
+			c += dist[k] * k
+			if (c > s * p[num - 1] / 100):
+				minfreq = k
+				break
+
+		cfilter(stat[num], minfreq, sys.maxint)
+		features = features.union(stat[num].keys() )
 	return features
 
-def extractFeatures(data, features, tags, stoplist):
+def extractFeatures(data, features, tags, stoplist, n):
 	for tag in tags:
 		for r in data:
 			r['feature'] = {}
-			for num in range(1, 4):	# n-gram lengthes
+			for num in range(1, n + 1):	# n-gram lengthes
 				try:
 					c = ngrams(r[tag], num, stoplist)
 					for f in c:
-						if f in features[tag]:
+						if f in features:
 							r['feature'][f] = c[f]
 				except KeyError:
 					continue
@@ -161,7 +164,7 @@ def main():
                      
 	# init vars
 	stoplist = set()
-	minfreq_p = 0;
+	minfreq_p = [0];
 
 	for opt, arg in opts:                
 		if opt in ("-h", "--help"):      
@@ -184,7 +187,7 @@ def main():
 		elif opt in ("-t", "--tag"): 
 			tags = arg.split(',')
 		elif opt in ("-M", "--MIN"): 
-			minfreq_p = int(arg)
+			minfreq_p = map(int, arg.split(','))
 		else:
 			print "unhandled option"
 			usage()
@@ -210,10 +213,10 @@ def main():
 
 	print 'Select features ...'
 	features = selectFeatures(data, tags, stoplist, minfreq_p)
-	print '#feature = ', [len(features[tag]) for tag in tags]
+	print '#feature = ', len(features) 
 
 	print 'Extract features ...'
-	data = extractFeatures(data, features, tags, stoplist)
+	data = extractFeatures(data, features, tags, stoplist, len(minfreq_p))
 
 	# output
 	if 'ofile' in locals():
