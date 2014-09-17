@@ -38,6 +38,13 @@ Furthermore, we collects the number of occurrences of all n-grams in the given f
 (or all files in the given directory). A high pass filter is then applied to remove n-gram
 feature that rarely appears. It filters out low frequent n-grams that 
 contribute to **MIN** (parameter) portion of the total number of n-gram occurrences.
+Note that unigram, bigram, ... are filtered separately to preserve longer n-gram features.
 
+
+####Usage
 type ./preprocess.py --help to see more.
+
+####Output
+When pass --ouput=file as argument, result dataset will be saved in *ouput*, and feature vector will be saved in
+*output.feature*.
 
