@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 import getopt
-import os
+import os, io
 import sys
 import urllib
 import urllib2
 import re
 import pprint
+import pickle
 
 from bs4 import BeautifulSoup
 from os import listdir
@@ -204,10 +205,14 @@ def main():
 	print '#feature = ', [len(features[tag]) for tag in tags]
 
 	# extract features
-	extractFeatures(data, features, tags, stoplist)
+	data = extractFeatures(data, features, tags, stoplist)
 
-	#pprint.PrettyPrinter(indent=4).pprint(data[1])
-	#pprint.PrettyPrinter(indent=4).pprint(stoplist)
+	# output
+	if 'ofile' in locals():
+		with io.open(ofile, 'wb') as f:
+			pickle.dump(data, f)
+			print "Save result to ", ofile
+
 
 if __name__ == "__main__":
 	main()
