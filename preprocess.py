@@ -104,15 +104,27 @@ def selectFeatures(data, tags, stoplist, p):
 	# get n-gram statistics
 	stat = {}
 
+	cbuf = Counter()
+	cbuf_size = 0
 	for num in range(1, len(p) + 1):	# n-gram lengthes
 		stat[num] = Counter()
 		for tag in tags:
 			stat[(tag, num)] = Counter()
 			for r in data:
 				try:
-					stat[(tag, num)] += ngrams(r[tag], num, stoplist)
+					cbuf += ngrams(r[tag], num, stoplist)
+					cbuf_size += 1
+					if cbuf_size > 64:
+						stat[(tag, num)] += cbuf
+						cbuf = Counter()
+						cbuf_size = 0
 				except KeyError:
 					continue
+			if cbuf_size > 0:
+				stat[(tag, num)] += cbuf
+				cbuf = Counter()
+				cbuf_size = 0
+
 			stat[num] += stat[(tag, num)]
 
 		# generate the counter value distribution
