@@ -18,7 +18,7 @@ from nltk.stem import *
 from tools import parseRaw, readWordList, _ngrams, ngrams
 
 def usage():
-	print "Usage: preprocess.py [--help] --url=data_url --file=file_path --dir=dir_path --output=path --sep=separator --label=lablel1,label2 --tag=tag1,tag2,... " 
+	print "Usage: preprocess.py [--help] --url=data_url --file=file_path --dir=dir_path --output=path --sep=separator --label=label1,label2 --tag=tag1,tag2,... " 
 	print "                              --stoplist=file --MIN=percentage1,pecentage2,..."
 	print ""
 	print "sep        token used to identify an article, e.g. <reuters> article </reuters>"

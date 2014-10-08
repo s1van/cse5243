@@ -24,7 +24,9 @@ def vecsim(mf,f):
 		return len(set(f).intersection(mf))
 
 
-def test(model, r, label, np): #%np percent nearest neighbour
+def test(model, r, label, params):
+	np = int(params[0]) # %np percent nearest neighbour
+
 	retc = []
 	f = r['feature']
 	stat = Counter()
@@ -46,4 +48,4 @@ def test(model, r, label, np): #%np percent nearest neighbour
 	return retc
 
 def train(data, label):
-	return 0
+	return data
