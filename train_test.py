@@ -10,6 +10,7 @@ import re
 import pprint
 import pickle
 import importlib
+import time
 
 from bs4 import BeautifulSoup
 from os import listdir
@@ -39,7 +40,10 @@ def main():
 	except getopt.GetoptError:           
 		usage()                          
 		sys.exit(2)
-                     
+                
+	# init
+	params = []     
+
 	for opt, arg in opts:                
 		if opt in ("-h", "--help"):      
 			usage()                     
@@ -60,17 +64,26 @@ def main():
 			sys.exit()
 
 	print 'Start to train the model ...' 
+	ts = time.time()
 	train_set_size = int(len(data) * p/100)
 	model = method.train(data[0: train_set_size], label)
 	stat = Counter()
+	te = time.time()
+	print 'Training takes', te-ts, 'sec', 'with #examples =', train_set_size
+	print ''
 
 	print 'Start to test the model ...'
+	ts = time.time()
 	for r in data[train_set_size:len(data)]:
 		c = method.test(model, r, label, params)
 		if set(c).intersection(r[label]):
 			stat['correct'] += 1
 		else:
 			stat['incorrect'] += 1
+	te = time.time()
+	print 'Testing takes', te-ts, 'sec', 'with #samples =', len(data) - train_set_size
+	print 'Time to classify a tuple', (te-ts)/(len(data) - train_set_size)
+	print ''
 
 	print 'Result:'
 	pprint.pprint(stat)
