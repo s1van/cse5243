@@ -98,69 +98,57 @@ def cfilter(counter, MIN, MAX):
 	for k in keys:
 		if counter[k] < MIN or counter[k] > MAX:
 			del counter[k]
+	return counter
 
-def selectFeatures(data, tags, stoplist, p):
-	features = set()
-	# get n-gram statistics
-	stat = {}
+def cpfilter(counter, pmin, pmax):
+	s = sum(counter.values() )
+	minfreq = int(s * pmin / 100)
+	maxfreq = int(s * pmax / 100)
+	return cfilter(counter, minfreq, maxfreq)
 
-	cbuf = Counter()
-	cbuf_size = 0
-	for num in range(1, len(p) + 1):	# n-gram lengthes
-		stat[num] = Counter()
-		for tag in tags:
-			stat[(tag, num)] = Counter()
-			for r in data:
+def csfilter(counter, MIN, MAX): # drop top %MAX and bottom %MIN items
+	keys = counter.keys()
+	drop_max = int(len(keys) * MAX / 100)
+	drop_min = int(len(keys) * MIN / 100)
+	nc = counter.most_common() # list type
+	del nc[0 : drop_max]
+	del nc[-drop_min: -1]
+	return nc
+
+def selectFeatures(data, tags, stoplist, p):	# p[i] for i-gram passing high pass filter
+
+	dlist = []
+	for r in data:
+		r['feature']  = []
+		for num in range(1, len(p) + 1):	# n-gram lengthes
+			stat = Counter()
+			for tag in tags:
 				try:
-					cbuf += ngrams(r[tag], num, stoplist)
-					cbuf_size += 1
-					if cbuf_size > 64:
-						stat[(tag, num)] += cbuf
-						cbuf = Counter()
-						cbuf_size = 0
+					stat += ngrams(r[tag], num, stoplist)
 				except KeyError:
 					continue
-			if cbuf_size > 0:
-				stat[(tag, num)] += cbuf
-				cbuf = Counter()
-				cbuf_size = 0
+			nc = csfilter(stat, p[num - 1], 0)
+			r['feature'] += [k for k,v in nc]
+		if not r['feature']:
+			dlist.append(r)
+		
+	for r in dlist:
+		data.remove(r)
 
-			stat[num] += stat[(tag, num)]
-
-		# generate the counter value distribution
-		dist = {}
-		for v in stat[num].values():
-			try:
-				dist[v] += 1
-			except:
-				dist[v] = 1
-
-		# choose minimum frequency accordingly
-		s = sum([k*v for k,v in zip(dist.keys(), dist.values()) ])
-		c = minfreq = 0
-		for k in dist.keys():
-			c += dist[k] * k
-			if (c > s * p[num - 1] / 100):
-				minfreq = k
-				break
-
-		cfilter(stat[num], minfreq, sys.maxint)
-		features = features.union(stat[num].keys() )
-	return features
-
-def extractFeatures(data, features, tags, stoplist, n):
+def cleanup(data, tags, labels):
 	for tag in tags:
 		for r in data:
-			r['feature'] = {}
-			for num in range(1, n + 1):	# n-gram lengthes
-				try:
-					c = ngrams(r[tag], num, stoplist)
-					for f in c:
-						if f in features:
-							r['feature'][f] = c[f]
-				except KeyError:
-					continue
+			del r[tag]
 	
+	dlist = []
+	for r in data:
+		for label in labels:
+			if not r[label]:
+				dlist.append(r)
+				break
+
+	for r in dlist:
+		data.remove(r)
 	return data
 
 def main():
@@ -224,20 +212,18 @@ def main():
 		sys.exit(2)
 
 	print 'Select features ...'
-	features = selectFeatures(data, tags, stoplist, minfreq_p)
-	print '#feature = ', len(features) 
-
-	print 'Extract features ...'
-	data = extractFeatures(data, features, tags, stoplist, len(minfreq_p))
+	selectFeatures(data, tags, stoplist, minfreq_p)
+	print 'Clean dataset ...'
+	cleanup(data, tags, labels)
 
 	# output
 	if 'ofile' in locals():
 		with io.open(ofile, 'wb') as f:
 			pickle.dump(data, f)
 			print "Save result to ", ofile
-		with io.open(ofile + '.feature', 'wb') as f:
-			print >> f, features
-			print "Save feature to ", ofile + '.feature'
+		with io.open(ofile + '.io', 'wb') as f:
+			pprint.pprint(data, f)
+			print "Save feature to ", ofile + '.io'
 
 
 if __name__ == "__main__":
