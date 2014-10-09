@@ -67,12 +67,24 @@ def main():
 	ts = time.time()
 	train_set_size = int(len(data) * p/100)
 	model = method.train(data[0: train_set_size], label)
-	stat = Counter()
 	te = time.time()
 	print 'Training takes', te-ts, 'sec', 'with #examples =', train_set_size
 	print ''
 
+#	print 'Start to check the model ...'
+#	stat = Counter()
+#	for r in data[0:train_set_size]:
+#		c = method.test(model, r, label, params)
+#		if set(c).intersection(r[label]):
+#			stat['correct'] += 1
+#		else:
+#			stat['incorrect'] += 1
+#	acc = stat['correct'] / float(stat['correct'] + stat['incorrect'])
+#	print 'Model Accuracy =', acc
+#	print ''
+
 	print 'Start to test the model ...'
+	stat = Counter()
 	ts = time.time()
 	for r in data[train_set_size:len(data)]:
 		c = method.test(model, r, label, params)
