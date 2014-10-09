@@ -48,3 +48,15 @@ type ./preprocess.py --help to see more.
 When pass --ouput=file as argument, result dataset will be saved in *ouput*, and feature vector will be saved in
 *output.feature*.
 
+###train_test.py
+run train_test.py --help to see more details.
+
+####Run K-Nearest-Neighbors
+```bash
+train_test.py --file=full.pickle --label=topics --percent=80 --method=knn --args=10
+```
+
+####Run Naive Bayes
+```bash
+train_test.py --file=full.pickle --label=topics --percent=90 --method=naive_bayes
+```
