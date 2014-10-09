@@ -10,12 +10,7 @@ import re
 import pprint
 import pickle
 
-from bs4 import BeautifulSoup
-from os import listdir
 from collections import Counter
-from itertools import tee, islice, izip
-from nltk.stem import *
-from tools import parseRaw, readWordList, _ngrams, ngrams
 
 def vecsim(mf,f):
 	if (len(mf) < len(f)):

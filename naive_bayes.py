@@ -11,7 +11,6 @@ import pprint
 import pickle
 
 from collections import Counter
-from itertools import tee, islice, izip
 
 
 def test(model, r, label, params):
