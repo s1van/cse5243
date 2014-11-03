@@ -1,13 +1,7 @@
 ##Require
-python packages: chardet, BeautifulSoup, NLTK
+python packages: chardet, BeautifulSoup, NLTK, numpy, sckit-learn, scipy
 
 python version: 2.7+
-
-
-### Install Packages
-```bash
-sudo apt-get install python-chardet python-bs python-nltk
-```
 
 
 ##Tools
@@ -44,6 +38,9 @@ Note that unigram, bigram, ... are filtered separately to preserve longer n-gram
 
 
 ####Usage
+```bash
+./preprocess.py --dir=/tmp/data --sep=reuters --label=topics,places --tag=body --stoplist=/tmp/stoplist --MIN=95 --output=/tmp/out.pickle
+```
 type ./preprocess.py --help to see more.
 
 ####Output
@@ -62,3 +59,19 @@ train_test.py --file=full.pickle --label=topics --percent=80 --method=knn --args
 ```bash
 train_test.py --file=full.pickle --label=topics --percent=90 --method=naive_bayes
 ```
+
+###cluster_test.py
+This script takes .vec yielded by preprocess.py as input *file*, and cluster it with specified *method*. The output includes the entropy score and variance of the clustering.
+
+####Run DBSCAN
+The DBSCAN method requires three parameters *--args=eps,min_samples,metric*. The eps speficifies the maximum distance between two points that can be thought in the same neighborhood; the min_samples indicats the minimum number of point a core point should have; the metric tells us how to calculate the distance between points.
+```bash
+python cluster_test.py --file=./all.pickle.vec --method=dbscan --args=25,20,manhattan
+```
+
+####Run Agglomerative Clustering
+The Agglomerative Clustering requires two parameters *--args=ncluster,linkage*. The ncluster specifies the number of clusters this method trying to identify; The linkage indicates the method to calculate distance between two set of points (or samples). 
+```bash
+python cluster_test.py --file=./all.pickle.vec --method=aggc --args=2,average
+```
+

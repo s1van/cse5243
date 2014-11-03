@@ -9,6 +9,7 @@ import urllib2
 import re
 import pprint
 import pickle
+import numpy as np
 
 from bs4 import BeautifulSoup
 from os import listdir
@@ -16,6 +17,9 @@ from collections import Counter
 from itertools import tee, islice, izip
 from nltk.stem import *
 from tools import parseRaw, readWordList, _ngrams, ngrams
+
+from sklearn.feature_extraction import DictVectorizer
+from sklearn import preprocessing
 
 def usage():
 	print "Usage: preprocess.py [--help] --url=data_url --file=file_path --dir=dir_path --output=path --sep=separator --label=label1,label2 --tag=tag1,tag2,... " 
@@ -153,14 +157,31 @@ def main():
 	print 'Clean dataset ...'
 	cleanup(data, tags, labels)
 
+	print 'Generate feature vectors and labels for scikit-learn'
+	vec = DictVectorizer(dtype = np.uint8)
+	vdata = vec.fit_transform([ {k:"" for k in item['feature']} for item in data]).toarray()
+
+	le = preprocessing.LabelEncoder()
+	labelset = set()
+	for item in data:
+		labelset = labelset.union(item['topics'])
+		labelset = labelset.union(item['places'])
+	le.fit(list(labelset))
+	# Encoded Labels
+	elabels = [ np.append(le.transform(item['topics']), le.transform(item['places'])) for item in data]
+
+	fvec_label = {'feature_vector': vdata, 'label': elabels, 'all_label': list(labelset)}
 	# output
 	if 'ofile' in locals():
 		with io.open(ofile, 'wb') as f:
+			print "Save results to ", ofile
 			pickle.dump(data, f)
-			print "Save result to ", ofile
 		with io.open(ofile + '.io', 'wb') as f:
+			print "Save features to ", ofile + '.io'
 			pprint.pprint(data, f)
-			print "Save feature to ", ofile + '.io'
+		with io.open(ofile + '.vec', 'wb') as f:
+			print "Save features to ", ofile + '.vec'
+			pickle.dump(fvec_label, f)
 
 
 if __name__ == "__main__":
