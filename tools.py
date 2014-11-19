@@ -9,6 +9,7 @@ import urllib2
 import re
 import pprint
 import pickle
+import numpy as np
 
 from bs4 import BeautifulSoup
 from os import listdir
@@ -80,4 +81,18 @@ def ngrams(text, n, stoplist = [], stem = True):
 	lst = re.findall("\w+", text)
 	return Counter(_ngrams(lst, n, stoplist, stem) )
 
+
+# assume that a and b are both sets
+def jaccard_similarity(a, b):
+	score = 0
+	if len(a) < len(b):
+		score = float(len(a.intersection(b))) / len(a.union(b))
+	else:
+		score = float(len(b.intersection(a))) / len(b.union(a))
+	return score
+
+# a, b must be 1D array
+def jaccard_similarity_1d(a, b):
+	score = len(np.intersect1d(a, b, assume_unique=True)) / len(np.union1d(a, b))
+	return score
 
