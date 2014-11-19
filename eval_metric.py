@@ -47,7 +47,7 @@ def main():
 			usage()                     
 			sys.exit()                  
 		elif opt in ("-f", "--file"): 
-			data = pickle.load(open(arg, "rb"))[0:10]
+			data = pickle.load(open(arg, "rb"))
 		elif opt in ("-a", "--args"): 
 			params = arg.split(',')
 		elif opt in ("-m", "--method"): 

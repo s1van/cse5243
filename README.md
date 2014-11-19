@@ -1,7 +1,7 @@
 ##Require
 python packages: chardet, BeautifulSoup, NLTK, numpy, sckit-learn, scipy
-
 python version: 2.7+
+
 
 
 ##Tools
@@ -75,3 +75,11 @@ The Agglomerative Clustering requires two parameters *--args=ncluster,linkage*. 
 python cluster_test.py --file=./all.pickle.vec --method=aggc --args=2,average
 ```
 
+###eval_metric.py
+This script will first calculate the Jaccard Similarity, then run the given method that approximates the exact similarity. At last, it presents the mean squared error and relative mean error of the method.
+
+####MinHash
+The sole argument specifies the number of hash functions (permutation) to use.
+```bash
+python eval_metric.py --file=full.pickle --method=minhash --args=128
+```
