@@ -1,7 +1,8 @@
 ##Require
-python packages: chardet, BeautifulSoup, NLTK, numpy, sckit-learn, scipy
-python version: 2.7+
+* python packages: chardet, BeautifulSoup, NLTK, numpy, sckit-learn, scipy
+* python version: 2.7+
 
+It would be easier to install all packages with [conda](http://conda.pydata.org)
 
 
 ##Tools
