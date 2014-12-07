@@ -35,7 +35,7 @@ def test(model, r, label, params):
 	retc.append(scores.most_common()[0][0])
 	return retc
 
-def train(data, label):
+def train(data, label, params):
 	feature_dist = dict()
 	class_dist = Counter()
 

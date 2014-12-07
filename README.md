@@ -84,3 +84,14 @@ The sole argument specifies the number of hash functions (permutation) to use.
 ```bash
 python eval_metric.py --file=full.pickle --method=minhash --args=128
 ```
+
+##Cross Validation Test
+####Apriori
+```bash
+conda run "python cv_apriori.py --file=./full.pickle --label=topics --percent=80 --method=apriori --args1=0.02,0.05,0.08 --args2=0.2,0.3,0.4" 
+```
+
+####Apriori with Clustering
+```bash
+conda run "python cv_apriori.py --file=./full.pickle --label=topics --percent=80 --method=capriori --args1=0.02,0.05,0.08 --args2=0.2,0.3,0.4" 
+```

@@ -62,14 +62,17 @@ def main():
 			print "unhandled option"
 			usage()
 			sys.exit()
+	train_test(data, label, params, p, method)
 
+def train_test(data, label, params, p, method):
 	print 'Start to train the model ...' 
 	ts = time.time()
 	train_set_size = int(len(data) * p/100)
-	model = method.train(data[0: train_set_size], label)
+	model = method.train(data[0: train_set_size], label, params)
 	te = time.time()
 	print 'Training takes', te-ts, 'sec', 'with #examples =', train_set_size
 	print ''
+	train_t = te - ts
 
 #	print 'Start to check the model ...'
 #	stat = Counter()
@@ -86,8 +89,11 @@ def main():
 	print 'Start to test the model ...'
 	stat = Counter()
 	ts = time.time()
+	stat['correct'] = stat['incorrect'] = stat['missing'] = 0
 	for r in data[train_set_size:len(data)]:
 		c = method.test(model, r, label, params)
+		if not c:
+			stat['missing'] += 1
 		if set(c).intersection(r[label]):
 			stat['correct'] += 1
 		else:
@@ -96,11 +102,14 @@ def main():
 	print 'Testing takes', te-ts, 'sec', 'with #samples =', len(data) - train_set_size
 	print 'Time to classify a tuple', (te-ts)/(len(data) - train_set_size)
 	print ''
+	test_t= te - ts
 
 	print 'Result:'
 	pprint.pprint(stat)
 	acc = stat['correct'] / float(stat['correct'] + stat['incorrect'])
 	print 'Accuracy =', acc
+
+	return (train_t, test_t, acc)
 
 if __name__ == "__main__":
 	main()

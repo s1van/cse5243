@@ -42,5 +42,5 @@ def test(model, r, label, params):
 	retc.append(cs.most_common()[0][0])
 	return retc
 
-def train(data, label):
+def train(data, label, params):
 	return data
